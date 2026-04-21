@@ -38,6 +38,28 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Definimos los mensajes personalizados
+        $messages = [
+            'category_id.required' => 'Debes seleccionar una categoría.',
+            'category_id.exists' => 'La categoría seleccionada no es válida.',
+            'name.required' => 'El nombre del producto es obligatorio.',
+            'name.string' => 'El nombre debe ser un texto válido.',
+            'name.max' => 'El nombre no puede superar los 255 caracteres.',
+            'brand.max' => 'La marca no puede superar los 255 caracteres.',
+            'model.max' => 'El modelo no puede superar los 255 caracteres.',
+            'sku.unique' => 'Este SKU ya está registrado en otro producto.',
+            'sku.max' => 'El SKU no puede superar los 255 caracteres.',
+            'price.numeric' => 'El precio debe ser un número.',
+            'price.min' => 'El precio no puede ser negativo.',
+            'images.required' => 'Debes subir al menos una imagen para el producto.',
+            'images.*.image' => 'El archivo subido debe ser una imagen.',
+            'images.*.mimes' => 'Las imágenes deben estar en formato: jpg, jpeg, png o webp.',
+            'images.*.max' => 'Cada imagen no debe pesar más de 12MB.',
+            'featured_image.integer' => 'El índice de la imagen destacada debe ser un número entero.',
+            'featured_image.min' => 'El índice de la imagen destacada no puede ser negativo.',
+        ];
+
+        // 2. Pasamos los mensajes como segundo parámetro
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -50,12 +72,12 @@ class ProductController extends Controller
             'images' => ['required'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:12000'],
             'featured_image' => ['nullable', 'integer', 'min:0'],
-        ]);
+        ], $messages);
 
         if (! $request->hasFile('images')) {
             return back()
                 ->withInput()
-                ->with('error', 'Debes seleccionar al menos una imagen.');
+                ->with('error', 'Debes seleccionar al menos una imagen válida.');
         }
 
         if (!$validated['sku']) {
@@ -102,7 +124,7 @@ class ProductController extends Controller
             }
 
             if ($storedCount === 0) {
-                throw new \RuntimeException('No se pudo guardar ninguna imagen del producto.');
+                throw new \RuntimeException('No se pudo guardar ninguna imagen del producto en el servidor.');
             }
 
             if (! $product->images()->where('is_featured', true)->exists()) {
@@ -124,7 +146,7 @@ class ProductController extends Controller
 
             return back()
                 ->withInput()
-                ->with('error', 'Ocurrió un error al guardar el producto. Revisa que las imágenes sean válidas.');
+                ->with('error', 'Ocurrió un error interno al guardar el producto. Intenta nuevamente.');
         }
     }
 
@@ -138,6 +160,26 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        // 1. Mensajes de validación para la actualización
+        $messages = [
+            'category_id.required' => 'Debes seleccionar una categoría.',
+            'category_id.exists' => 'La categoría seleccionada no es válida.',
+            'name.required' => 'El nombre del producto es obligatorio.',
+            'name.string' => 'El nombre debe ser un texto válido.',
+            'name.max' => 'El nombre no puede superar los 255 caracteres.',
+            'brand.max' => 'La marca no puede superar los 255 caracteres.',
+            'model.max' => 'El modelo no puede superar los 255 caracteres.',
+            'sku.unique' => 'Este SKU ya está registrado en otro producto.',
+            'sku.max' => 'El SKU no puede superar los 255 caracteres.',
+            'price.numeric' => 'El precio debe ser un número.',
+            'price.min' => 'El precio no puede ser negativo.',
+            'images.*.image' => 'El archivo subido debe ser una imagen.',
+            'images.*.mimes' => 'Las imágenes deben estar en formato: jpg, jpeg, png o webp.',
+            'images.*.max' => 'Cada imagen nueva no debe pesar más de 4MB.',
+            'featured_image_id.exists' => 'La imagen destacada seleccionada no es válida.',
+        ];
+
+        // 2. Pasamos los mensajes
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -149,7 +191,7 @@ class ProductController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'featured_image_id' => ['nullable', 'exists:product_images,id'],
-        ]);
+        ], $messages);
 
         $product->update([
             'category_id' => $validated['category_id'],
