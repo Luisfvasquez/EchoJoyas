@@ -1,11 +1,10 @@
 <x-store-layout>
-   
     @php
         $selectedCategories = collect(request('categories', []))->map(fn($id) => (int) $id)->all();
     @endphp
 
     <form method="GET" action="{{ route('shop') }}"
-        class="container mx-auto px-4 py-12 flex flex-col-reverse md:flex-row gap-10">
+        class="container mx-auto px-4 py-8 flex flex-col-reverse md:flex-row gap-8 lg:gap-10">
 
         <aside class="w-full md:w-1/4">
             <div class="sticky top-24 bg-white p-6 border rounded-xl shadow-sm">
@@ -98,7 +97,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                 @forelse($products as $product)
                     <div
                         class="bg-white border rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col relative">
@@ -126,26 +125,26 @@
                             @endif
                         </div>
 
-                        <div class="p-5 flex-1 flex flex-col">
-                            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">
+                        <div class="p-3 sm:p-5 flex-1 flex flex-col">
+                            <p class="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest mb-1 truncate">
                                 {{ $product->category?->name ?? 'Sin categoría' }}
                                 @if ($product->brand)
                                     / {{ $product->brand }}
                                 @endif
                             </p>
 
-                            <h2 class="text-lg font-serif font-bold text-gray-900 mb-2 line-clamp-2">
+                            <h2 class="text-sm sm:text-lg font-serif font-bold text-gray-900 mb-2 line-clamp-2">
                                 {{ $product->name }}
                             </h2>
 
                             <div class="mt-auto">
-                                <p class="text-xl text-black font-bold mb-4">
+                                <p class="text-base sm:text-xl text-black font-bold mb-3 sm:mb-4">
                                     {{ $product->price ? '$' . number_format($product->price, 2, ',', '.') : 'Consultar' }}
                                 </p>
 
                                 <a href="{{ route('shop.show', $product) }}"
-                                    class="block w-full text-center border border-black text-black py-2 uppercase text-sm tracking-widest font-bold hover:bg-black hover:text-white transition duration-300">
-                                    Ver Detalles
+                                    class="block w-full text-center border border-black text-black py-1.5 sm:py-2 uppercase text-[10px] sm:text-sm tracking-widest font-bold hover:bg-black hover:text-white transition duration-300">
+                                    Detalles
                                 </a>
                             </div>
                         </div>
