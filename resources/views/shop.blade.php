@@ -1,13 +1,5 @@
 <x-store-layout>
-    <div class="bg-gray-900 text-white py-16">
-        <div class="container mx-auto px-4 text-center">
-            <h1 class="text-4xl md:text-5xl font-serif font-bold mb-4 tracking-wider">Catálogo Exclusivo</h1>
-            <p class="text-gray-400 max-w-xl mx-auto text-sm md:text-base">
-                Explore nuestra cuidada selección de alta relojería y joyería fina.
-            </p>
-        </div>
-    </div>
-
+   
     @php
         $selectedCategories = collect(request('categories', []))->map(fn($id) => (int) $id)->all();
     @endphp
