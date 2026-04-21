@@ -12,7 +12,7 @@
         $selectedCategories = collect(request('categories', []))->map(fn($id) => (int) $id)->all();
     @endphp
 
-    <form method="GET" action="{{ route('shop') }}" class="container mx-auto px-4 py-12 flex flex-col md:flex-row gap-10">
+    <form method="GET" action="{{ route('shop') }}" class="container mx-auto px-4 py-12 flex flex-col-reverse md:flex-row gap-10">
 
         <aside class="w-full md:w-1/4">
             <div class="sticky top-24 bg-white p-6 border rounded-xl shadow-sm">
