@@ -179,7 +179,7 @@
                 </div>
 
                 <div class="text-center mt-12">
-                    <a href="#"
+                    <a href="{{ route('shop') }}"
                         class="inline-flex items-center gap-2 px-8 py-3 bg-black text-white font-semibold uppercase tracking-wider hover:bg-yellow-500 hover:text-black transition duration-300 rounded-full">
                         <span>Ver Todo El Catálogo</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
