@@ -7,11 +7,11 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImages;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
@@ -39,7 +39,6 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Definimos los mensajes personalizados
         $messages = [
             'category_id.required' => 'Debes seleccionar una categoría.',
             'category_id.exists' => 'La categoría seleccionada no es válida.',
@@ -53,14 +52,14 @@ class ProductController extends Controller
             'price.numeric' => 'El precio debe ser un número.',
             'price.min' => 'El precio no puede ser negativo.',
             'images.required' => 'Debes subir al menos una imagen para el producto.',
+            'images.array' => 'Debes subir una lista válida de imágenes.',
             'images.*.image' => 'El archivo subido debe ser una imagen.',
             'images.*.mimes' => 'Las imágenes deben estar en formato: jpg, jpeg, png o webp.',
-            'images.*.max' => 'Cada imagen no debe pesar más de 12MB.',
+            'images.*.max' => 'Cada imagen no debe pesar más de 8MB.',
             'featured_image.integer' => 'El índice de la imagen destacada debe ser un número entero.',
             'featured_image.min' => 'El índice de la imagen destacada no puede ser negativo.',
         ];
 
-        // 2. Pasamos los mensajes como segundo parámetro
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -70,8 +69,8 @@ class ProductController extends Controller
             'price' => ['nullable', 'numeric', 'min:0'],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
-            'images' => ['required'],
-            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:12000'],
+            'images' => ['required', 'array', 'min:1'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'featured_image' => ['nullable', 'integer', 'min:0'],
         ], $messages);
 
@@ -81,7 +80,7 @@ class ProductController extends Controller
                 ->with('error', 'Debes seleccionar al menos una imagen válida.');
         }
 
-        if (!$validated['sku']) {
+        if (empty($validated['sku'])) {
             $validated['sku'] = 'SKU-' . Str::upper(Str::random(8));
         }
 
@@ -158,7 +157,6 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        // 1. Mensajes de validación para la actualización
         $messages = [
             'category_id.required' => 'Debes seleccionar una categoría.',
             'category_id.exists' => 'La categoría seleccionada no es válida.',
@@ -171,13 +169,13 @@ class ProductController extends Controller
             'sku.max' => 'El SKU no puede superar los 255 caracteres.',
             'price.numeric' => 'El precio debe ser un número.',
             'price.min' => 'El precio no puede ser negativo.',
+            'images.array' => 'Las nuevas imágenes no tienen un formato válido.',
             'images.*.image' => 'El archivo subido debe ser una imagen.',
             'images.*.mimes' => 'Las imágenes deben estar en formato: jpg, jpeg, png o webp.',
-            'images.*.max' => 'Cada imagen nueva no debe pesar más de 4MB.',
+            'images.*.max' => 'Cada imagen nueva no debe pesar más de 8MB.',
             'featured_image_id.exists' => 'La imagen destacada seleccionada no es válida.',
         ];
 
-        // 2. Pasamos los mensajes
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -187,54 +185,77 @@ class ProductController extends Controller
             'price' => ['nullable', 'numeric', 'min:0'],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
-            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-            'featured_image_id' => ['nullable', 'exists:product_images,id'],
+            'images' => ['nullable', 'array'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'featured_image_id' => [
+                'nullable',
+                Rule::exists('product_images', 'id')->where(fn ($query) => $query->where('product_id', $product->id)),
+            ],
         ], $messages);
 
-        $product->update([
-            'category_id' => $validated['category_id'],
-            'name' => $validated['name'],
-            'slug' => $this->generateUniqueSlug($validated['name'], $product->id),
-            'brand' => $validated['brand'] ?? null,
-            'model' => $validated['model'] ?? null,
-            'sku' => $validated['sku'] ?? null,
-            'price' => $validated['price'] ?? null,
-            'description' => $validated['description'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-        ]);
+        DB::beginTransaction();
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images', []) as $image) {
-                if (! $image || ! $image->isValid()) {
-                    continue;
-                }
-
-                $stored = $this->storeOptimizedImage($image);
-
-                ProductImages::create([
-                    'product_id' => $product->id,
-                    'image_path' => $stored['image_path'],
-                    'thumbnail_path' => $stored['thumbnail_path'],
-                    'is_featured' => false,
-                ]);
-            }
-        }
-
-        if ($request->filled('featured_image_id')) {
-            ProductImages::where('product_id', $product->id)->update([
-                'is_featured' => false,
+        try {
+            $product->update([
+                'category_id' => $validated['category_id'],
+                'name' => $validated['name'],
+                'slug' => $this->generateUniqueSlug($validated['name'], $product->id),
+                'brand' => $validated['brand'] ?? null,
+                'model' => $validated['model'] ?? null,
+                'sku' => $validated['sku'] ?? null,
+                'price' => $validated['price'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'is_active' => $request->boolean('is_active'),
             ]);
 
-            ProductImages::where('product_id', $product->id)
-                ->where('id', $request->featured_image_id)
-                ->update([
-                    'is_featured' => true,
-                ]);
-        }
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images', []) as $image) {
+                    if (! $image || ! $image->isValid()) {
+                        continue;
+                    }
 
-        return redirect()
-            ->route('admin.products.index')
-            ->with('success', 'Producto actualizado correctamente.');
+                    $stored = $this->storeOptimizedImage($image);
+
+                    ProductImages::create([
+                        'product_id' => $product->id,
+                        'image_path' => $stored['image_path'],
+                        'thumbnail_path' => $stored['thumbnail_path'],
+                        'is_featured' => false,
+                    ]);
+                }
+            }
+
+            if ($request->filled('featured_image_id')) {
+                ProductImages::where('product_id', $product->id)->update([
+                    'is_featured' => false,
+                ]);
+
+                ProductImages::where('product_id', $product->id)
+                    ->where('id', $request->featured_image_id)
+                    ->update([
+                        'is_featured' => true,
+                    ]);
+            } elseif (! $product->images()->where('is_featured', true)->exists()) {
+                $firstImage = $product->images()->first();
+
+                if ($firstImage) {
+                    $firstImage->update(['is_featured' => true]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.products.index')
+                ->with('success', 'Producto actualizado correctamente.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Ocurrió un error interno al actualizar el producto.');
+        }
     }
 
     public function destroy(Product $product)
@@ -258,12 +279,10 @@ class ProductController extends Controller
         $productId = $image->product_id;
         $wasFeatured = $image->is_featured;
 
-        if (!empty($image->image_path)) {
-            Storage::disk('public')->delete(array_filter([
-                $image->image_path,
-                $image->thumbnail_path,
-            ]));
-        }
+        Storage::disk('public')->delete(array_filter([
+            $image->image_path,
+            $image->thumbnail_path,
+        ]));
 
         $image->delete();
 
@@ -285,9 +304,9 @@ class ProductController extends Controller
         $counter = 1;
 
         while (
-            Product::when($ignoreId, fn($query) => $query->where('id', '!=', $ignoreId))
-            ->where('slug', $slug)
-            ->exists()
+            Product::when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+                ->where('slug', $slug)
+                ->exists()
         ) {
             $slug = $baseSlug . '-' . $counter;
             $counter++;
@@ -295,6 +314,7 @@ class ProductController extends Controller
 
         return $slug;
     }
+
     private function storeOptimizedImage(UploadedFile $file): array
     {
         $info = getimagesize($file->getRealPath());
@@ -311,6 +331,16 @@ class ProductController extends Controller
             IMAGETYPE_WEBP => imagecreatefromwebp($file->getRealPath()),
             default => throw new \RuntimeException('Formato de imagen no soportado.'),
         };
+
+        if (! $source) {
+            throw new \RuntimeException('No se pudo procesar la imagen.');
+        }
+
+        if ($type === IMAGETYPE_JPEG) {
+            $source = $this->applyExifOrientation($file, $source);
+            $width = imagesx($source);
+            $height = imagesy($source);
+        }
 
         $extension = match ($type) {
             IMAGETYPE_PNG  => 'png',
@@ -406,5 +436,25 @@ class ProductController extends Controller
         };
 
         imagedestroy($canvas);
+    }
+
+    private function applyExifOrientation(UploadedFile $file, $image)
+    {
+        if (! function_exists('exif_read_data')) {
+            return $image;
+        }
+
+        $exif = @exif_read_data($file->getRealPath());
+
+        if (! $exif || empty($exif['Orientation'])) {
+            return $image;
+        }
+
+        return match ((int) $exif['Orientation']) {
+            3 => imagerotate($image, 180, 0),
+            6 => imagerotate($image, -90, 0),
+            8 => imagerotate($image, 90, 0),
+            default => $image,
+        };
     }
 }

@@ -96,206 +96,38 @@
         @enderror
     </div>
 
-    @if (!isset($product))
-        <div class="border rounded-2xl p-5 bg-gray-50">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-700 mb-4">
-                Imágenes del producto
-            </h3>
+    <div class="border rounded-2xl p-5 bg-gray-50">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-700 mb-4">
+            {{ isset($product) ? 'Agregar nuevas imágenes' : 'Imágenes del producto' }}
+        </h3>
 
-            <div>
-                <label for="images" class="block text-sm font-medium text-gray-700 mb-2">
-                    Subir imágenes
-                </label>
-                <input type="file" id="images" name="images[]" accept="image/*" multiple
-                    class="w-full rounded-xl border-gray-300" required>
-                @error('images')
-                    <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
-                @enderror
-                @error('images.*')
-                    <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
-                @enderror
-            </div>
+        <div>
+            <label for="images" class="block text-sm font-medium text-gray-700 mb-2">
+                Subir imágenes
+            </label>
 
-            <div class="mt-4">
-                <label for="featured_image" class="block text-sm font-medium text-gray-700 mb-2">
-                    Índice de imagen destacada
-                </label>
-                <input type="number" id="featured_image" name="featured_image" min="0"
-                    value="{{ old('featured_image', 0) }}"
-                    class="w-full rounded-xl border-gray-300 focus:border-black focus:ring-black">
-                <p class="text-xs text-gray-500 mt-2">
-                    La primera imagen es índice 0, la segunda es 1, y así sucesivamente.
-                </p>
-            </div>
-        </div>
-    @else
-        <div class="border rounded-2xl p-5 bg-gray-50" x-data="imageUploader()">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-700 mb-4">
-                {{ isset($product) ? 'Agregar nuevas imágenes' : 'Imágenes del producto' }}
-            </h3>
+            <input type="file" id="images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple
+                class="w-full rounded-xl border-gray-300" {{ !isset($product) ? 'required' : '' }}>
 
-            <div>
-                <label for="images" class="block text-sm font-medium text-gray-700 mb-2">
-                    Subir imágenes
-                </label>
+            @error('images')
+                <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+            @enderror
 
-                <input x-ref="input" type="file" id="images" name="images[]"
-                    accept="image/jpeg,image/png,image/webp" multiple class="w-full rounded-xl border-gray-300"
-                    @change="processFiles($event)" {{ !isset($product) ? 'required' : '' }}>
+            @error('images.*')
+                <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+            @enderror
 
-                @error('images')
-                    <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
-                @enderror
-
-                @error('images.*')
-                    <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
-                @enderror
-
-                <p class="text-xs text-gray-500 mt-2">
-                    Las imágenes se optimizan antes de enviarse para acelerar la subida.
-                </p>
-            </div>
-
-            @if (!isset($product))
-                <input type="hidden" name="featured_image" :value="featuredIndex">
-            @endif
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4" x-show="previews.length > 0">
-                <template x-for="(preview, index) in previews" :key="preview.id">
-                    <div class="relative bg-white border rounded-xl p-2">
-                        <button type="button" @click="remove(index)"
-                            class="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full text-sm font-bold shadow">
-                            ×
-                        </button>
-
-                        <img :src="preview.url" class="w-full h-32 object-cover rounded-lg" alt="Preview">
-
-                        <div class="mt-2">
-                            <p class="text-xs text-gray-500" x-text="preview.size"></p>
-
-                            @if (!isset($product))
-                                <label class="flex items-center gap-2 mt-2 text-xs text-gray-700">
-                                    <input type="radio" name="featured_preview" :checked="featuredIndex === index"
-                                        @change="featuredIndex = index">
-                                    Imagen de portada
-                                </label>
-                            @endif
-                        </div>
-                    </div>
-                </template>
-            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                Las imágenes se optimizan antes de enviarse para acelerar la subida y mejorar la visualización.
+            </p>
         </div>
 
-        @once
-            <script>
-                document.addEventListener('alpine:init', () => {
-                    Alpine.data('imageUploader', () => ({
-                        files: [],
-                        previews: [],
-                        featuredIndex: 0,
+        @if (!isset($product))
+            <input type="hidden" name="featured_image" id="featured_image" value="{{ old('featured_image', 0) }}">
+        @endif
 
-                        async processFiles(event) {
-                            const selected = Array.from(event.target.files || []);
-
-                            for (const file of selected) {
-                                const optimized = await this.optimize(file);
-                                const url = URL.createObjectURL(optimized);
-
-                                this.files.push(optimized);
-                                this.previews.push({
-                                    id: crypto.randomUUID(),
-                                    url,
-                                    size: this.formatBytes(optimized.size),
-                                });
-                            }
-
-                            this.syncInput();
-                        },
-
-                        remove(index) {
-                            URL.revokeObjectURL(this.previews[index].url);
-                            this.previews.splice(index, 1);
-                            this.files.splice(index, 1);
-
-                            if (this.featuredIndex >= this.files.length) {
-                                this.featuredIndex = 0;
-                            }
-
-                            this.syncInput();
-                        },
-
-                        syncInput() {
-                            const dt = new DataTransfer();
-                            this.files.forEach(file => dt.items.add(file));
-                            this.$refs.input.files = dt.files;
-                        },
-
-                        optimize(file) {
-                            return new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-
-                                reader.onload = () => {
-                                    const img = new Image();
-
-                                    img.onload = () => {
-                                        let width = img.width;
-                                        let height = img.height;
-                                        const maxSize = 1600;
-
-                                        if (width > height && width > maxSize) {
-                                            height = Math.round((height * maxSize) / width);
-                                            width = maxSize;
-                                        } else if (height >= width && height > maxSize) {
-                                            width = Math.round((width * maxSize) / height);
-                                            height = maxSize;
-                                        }
-
-                                        const canvas = document.createElement('canvas');
-                                        canvas.width = width;
-                                        canvas.height = height;
-
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.drawImage(img, 0, 0, width, height);
-
-                                        canvas.toBlob((blob) => {
-                                            if (!blob) {
-                                                reject(new Error(
-                                                    'No se pudo optimizar la imagen.'
-                                                    ));
-                                                return;
-                                            }
-
-                                            const baseName = file.name.replace(
-                                                /\.[^.]+$/, '');
-
-                                            resolve(new File(
-                                                [blob],
-                                                `${baseName}.webp`, {
-                                                    type: 'image/webp'
-                                                }
-                                            ));
-                                        }, 'image/webp', 0.82);
-                                    };
-
-                                    img.onerror = reject;
-                                    img.src = reader.result;
-                                };
-
-                                reader.onerror = reject;
-                                reader.readAsDataURL(file);
-                            });
-                        },
-
-                        formatBytes(bytes) {
-                            if (bytes < 1024) return `${bytes} B`;
-                            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-                            return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-                        }
-                    }));
-                });
-            </script>
-        @endonce
-    @endif
+        <div id="image-preview-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 hidden"></div>
+    </div>
 
     <div class="flex flex-wrap gap-3">
         <button type="submit"
@@ -309,3 +141,194 @@
         </a>
     </div>
 </div>
+
+@once
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('images');
+            const previewGrid = document.getElementById('image-preview-grid');
+            const featuredInput = document.getElementById('featured_image');
+            const isCreate = !!featuredInput;
+
+            if (!input || !previewGrid) {
+                return;
+            }
+
+            let filesStore = [];
+
+            input.addEventListener('change', async function(event) {
+                const selectedFiles = Array.from(event.target.files || []);
+
+                if (!selectedFiles.length) {
+                    return;
+                }
+
+                for (const file of selectedFiles) {
+                    try {
+                        const optimized = await optimizeImage(file);
+                        filesStore.push(optimized);
+                    } catch (error) {
+                        console.error('Error optimizando imagen:', error);
+                    }
+                }
+
+                syncInputFiles();
+                renderPreviews();
+            });
+
+            function syncInputFiles() {
+                const dt = new DataTransfer();
+                filesStore.forEach(file => dt.items.add(file));
+                input.files = dt.files;
+            }
+
+            function renderPreviews() {
+                previewGrid.innerHTML = '';
+
+                if (!filesStore.length) {
+                    previewGrid.classList.add('hidden');
+                    if (featuredInput) {
+                        featuredInput.value = 0;
+                    }
+                    return;
+                }
+
+                previewGrid.classList.remove('hidden');
+
+                filesStore.forEach((file, index) => {
+                    const url = URL.createObjectURL(file);
+
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative bg-white border rounded-xl p-2';
+
+                    let featuredMarkup = '';
+                    if (isCreate) {
+                        const checked = Number(featuredInput.value || 0) === index ? 'checked' : '';
+                        featuredMarkup = `
+                    <label class="flex items-center gap-2 mt-2 text-xs text-gray-700">
+                        <input type="radio" name="featured_preview" value="${index}" ${checked}>
+                        Imagen de portada
+                    </label>
+                `;
+                    }
+
+                    wrapper.innerHTML = `
+                <button
+                    type="button"
+                    class="remove-preview absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full text-sm font-bold shadow"
+                    data-index="${index}"
+                >
+                    ×
+                </button>
+
+                <img src="${url}" class="w-full h-32 object-cover rounded-lg" alt="Preview imagen">
+
+                <div class="mt-2">
+                    <p class="text-xs text-gray-500">${formatBytes(file.size)}</p>
+                    ${featuredMarkup}
+                </div>
+            `;
+
+                    previewGrid.appendChild(wrapper);
+                });
+
+                previewGrid.querySelectorAll('.remove-preview').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const index = Number(this.dataset.index);
+                        removeFile(index);
+                    });
+                });
+
+                if (isCreate) {
+                    previewGrid.querySelectorAll('input[name="featured_preview"]').forEach(radio => {
+                        radio.addEventListener('change', function() {
+                            featuredInput.value = this.value;
+                        });
+                    });
+                }
+            }
+
+            function removeFile(index) {
+                filesStore.splice(index, 1);
+
+                if (featuredInput) {
+                    let currentFeatured = Number(featuredInput.value || 0);
+
+                    if (currentFeatured === index) {
+                        featuredInput.value = 0;
+                    } else if (currentFeatured > index) {
+                        featuredInput.value = currentFeatured - 1;
+                    }
+                }
+
+                syncInputFiles();
+                renderPreviews();
+            }
+
+            function optimizeImage(file) {
+                return new Promise((resolve, reject) => {
+                    if (!file.type.startsWith('image/')) {
+                        reject(new Error('Archivo no es imagen'));
+                        return;
+                    }
+
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const img = new Image();
+
+                        img.onload = function() {
+                            let width = img.width;
+                            let height = img.height;
+                            const maxSize = 1600;
+
+                            if (width > height && width > maxSize) {
+                                height = Math.round((height * maxSize) / width);
+                                width = maxSize;
+                            } else if (height >= width && height > maxSize) {
+                                width = Math.round((width * maxSize) / height);
+                                height = maxSize;
+                            }
+
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            const originalName = file.name.replace(/\.[^.]+$/, '');
+
+                            canvas.toBlob(function(blob) {
+                                if (!blob) {
+                                    reject(new Error(
+                                        'No se pudo generar la imagen optimizada.'));
+                                    return;
+                                }
+
+                                resolve(new File(
+                                    [blob],
+                                    `${originalName}.webp`, {
+                                        type: 'image/webp'
+                                    }
+                                ));
+                            }, 'image/webp', 0.82);
+                        };
+
+                        img.onerror = reject;
+                        img.src = e.target.result;
+                    };
+
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function formatBytes(bytes) {
+                if (bytes < 1024) return `${bytes} B`;
+                if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+            }
+        });
+    </script>
+@endonce

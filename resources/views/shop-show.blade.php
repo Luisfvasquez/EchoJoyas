@@ -19,6 +19,9 @@
                 [
                     'id' => $product->featured_image->id ?? 0,
                     'url' => asset('storage/' . $product->featured_image->image_path),
+                    'thumb_url' => asset(
+                        'storage/' . ($product->featured_image->thumbnail_path ?: $product->featured_image->image_path),
+                    ),
                     'alt' => $product->name,
                     'featured' => true,
                 ],
@@ -104,7 +107,7 @@
                                         :class="currentIndex === index ? 'ring-2 ring-black border-black' :
                                             'hover:border-gray-400'">
                                         <img :src="image.thumb_url" :alt="image.alt"
-                                            class="w-full h-20 object-cover">
+                                            class="w-full h-20 object-cover" loading="lazy" decoding="async">
                                     </button>
                                 </template>
                             </div>
@@ -210,8 +213,9 @@
                                 <div class="overflow-hidden aspect-square relative bg-gray-100">
                                     @if ($related->featured_image)
                                         <img src="{{ asset('storage/' . ($related->featured_image->thumbnail_path ?: $related->featured_image->image_path)) }}"
-                                            loading="lazy" decoding="async" alt="{{ $related->name }}"
-                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                            alt="{{ $related->name }}"
+                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            loading="lazy" decoding="async">
                                     @else
                                         <div
                                             class="w-full h-full flex items-center justify-center text-gray-400 text-sm">
