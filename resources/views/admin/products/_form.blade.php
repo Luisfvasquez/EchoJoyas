@@ -38,7 +38,7 @@
             <label for="brand" class="block text-sm font-medium text-gray-700 mb-2">
                 Marca
             </label>
-            <input type="text" id="brand" name="brand" value="{{ old('brand', $product->brand ?? '') }}"
+            <input type="text" id="brand" name="brand" value="{{ old('brand', $product->brand ?? '') }}" required
                 class="w-full rounded-xl border-gray-300 focus:border-black focus:ring-black">
         </div>
 
@@ -46,7 +46,7 @@
             <label for="model" class="block text-sm font-medium text-gray-700 mb-2">
                 Modelo
             </label>
-            <input type="text" id="model" name="model" value="{{ old('model', $product->model ?? '') }}"
+            <input type="text" id="model" name="model" value="{{ old('model', $product->model ?? '') }}" required
                 class="w-full rounded-xl border-gray-300 focus:border-black focus:ring-black">
         </div>
 
@@ -68,7 +68,7 @@
                 Precio
             </label>
             <input type="number" step="0.01" id="price" name="price"
-                value="{{ old('price', $product->price ?? '') }}"
+                value="{{ old('price', $product->price ?? '') }}" required
                 class="w-full rounded-xl border-gray-300 focus:border-black focus:ring-black">
             @error('price')
                 <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
