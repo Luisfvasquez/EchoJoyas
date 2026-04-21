@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
@@ -108,15 +109,12 @@ class ProductController extends Controller
                     continue;
                 }
 
-                $path = $image->store('products', 'public');
-
-                if (! $path || trim($path) === '') {
-                    continue;
-                }
+                $stored = $this->storeOptimizedImage($image);
 
                 ProductImages::create([
                     'product_id' => $product->id,
-                    'image_path' => $path,
+                    'image_path' => $stored['image_path'],
+                    'thumbnail_path' => $stored['thumbnail_path'],
                     'is_featured' => $index === $featuredIndex,
                 ]);
 
@@ -211,15 +209,12 @@ class ProductController extends Controller
                     continue;
                 }
 
-                $path = $image->store('products', 'public');
-
-                if (! $path || trim($path) === '') {
-                    continue;
-                }
+                $stored = $this->storeOptimizedImage($image);
 
                 ProductImages::create([
                     'product_id' => $product->id,
-                    'image_path' => $path,
+                    'image_path' => $stored['image_path'],
+                    'thumbnail_path' => $stored['thumbnail_path'],
                     'is_featured' => false,
                 ]);
             }
@@ -245,9 +240,10 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         foreach ($product->images as $image) {
-            if (!empty($image->image_path)) {
-                Storage::disk('public')->delete($image->image_path);
-            }
+            Storage::disk('public')->delete(array_filter([
+                $image->image_path,
+                $image->thumbnail_path,
+            ]));
         }
 
         $product->delete();
@@ -263,7 +259,10 @@ class ProductController extends Controller
         $wasFeatured = $image->is_featured;
 
         if (!empty($image->image_path)) {
-            Storage::disk('public')->delete($image->image_path);
+            Storage::disk('public')->delete(array_filter([
+                $image->image_path,
+                $image->thumbnail_path,
+            ]));
         }
 
         $image->delete();
@@ -295,5 +294,117 @@ class ProductController extends Controller
         }
 
         return $slug;
+    }
+    private function storeOptimizedImage(UploadedFile $file): array
+    {
+        $info = getimagesize($file->getRealPath());
+
+        if (! $info) {
+            throw new \RuntimeException('La imagen no es válida.');
+        }
+
+        [$width, $height, $type] = $info;
+
+        $source = match ($type) {
+            IMAGETYPE_JPEG => imagecreatefromjpeg($file->getRealPath()),
+            IMAGETYPE_PNG  => imagecreatefrompng($file->getRealPath()),
+            IMAGETYPE_WEBP => imagecreatefromwebp($file->getRealPath()),
+            default => throw new \RuntimeException('Formato de imagen no soportado.'),
+        };
+
+        $extension = match ($type) {
+            IMAGETYPE_PNG  => 'png',
+            IMAGETYPE_WEBP => 'webp',
+            default        => 'jpg',
+        };
+
+        $filename = (string) Str::uuid();
+
+        $imagePath = "products/{$filename}.{$extension}";
+        $thumbnailPath = "products/thumbs/{$filename}.{$extension}";
+
+        $this->resizeAndSave(
+            source: $source,
+            originalWidth: $width,
+            originalHeight: $height,
+            targetPath: Storage::disk('public')->path($imagePath),
+            maxWidth: 1600,
+            maxHeight: 1600,
+            type: $type
+        );
+
+        $this->resizeAndSave(
+            source: $source,
+            originalWidth: $width,
+            originalHeight: $height,
+            targetPath: Storage::disk('public')->path($thumbnailPath),
+            maxWidth: 500,
+            maxHeight: 500,
+            type: $type
+        );
+
+        imagedestroy($source);
+
+        return [
+            'image_path' => $imagePath,
+            'thumbnail_path' => $thumbnailPath,
+        ];
+    }
+
+    private function resizeAndSave(
+        $source,
+        int $originalWidth,
+        int $originalHeight,
+        string $targetPath,
+        int $maxWidth,
+        int $maxHeight,
+        int $type
+    ): void {
+        $ratio = min(
+            $maxWidth / $originalWidth,
+            $maxHeight / $originalHeight,
+            1
+        );
+
+        $newWidth = max(1, (int) round($originalWidth * $ratio));
+        $newHeight = max(1, (int) round($originalHeight * $ratio));
+
+        $canvas = imagecreatetruecolor($newWidth, $newHeight);
+
+        if (in_array($type, [IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+            imagefilledrectangle($canvas, 0, 0, $newWidth, $newHeight, $transparent);
+        } else {
+            $white = imagecolorallocate($canvas, 255, 255, 255);
+            imagefilledrectangle($canvas, 0, 0, $newWidth, $newHeight, $white);
+        }
+
+        imagecopyresampled(
+            $canvas,
+            $source,
+            0,
+            0,
+            0,
+            0,
+            $newWidth,
+            $newHeight,
+            $originalWidth,
+            $originalHeight
+        );
+
+        if (! is_dir(dirname($targetPath))) {
+            mkdir(dirname($targetPath), 0755, true);
+        }
+
+        match ($type) {
+            IMAGETYPE_JPEG => imagejpeg($canvas, $targetPath, 82),
+            IMAGETYPE_PNG  => imagepng($canvas, $targetPath, 7),
+            IMAGETYPE_WEBP => imagewebp($canvas, $targetPath, 80),
+            default => throw new \RuntimeException('Formato de imagen no soportado.'),
+        };
+
+        imagedestroy($canvas);
     }
 }
