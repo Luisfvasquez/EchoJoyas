@@ -119,9 +119,6 @@
                         <div class="mb-4">
                             <p class="text-xs text-gray-500 uppercase tracking-widest mb-2">
                                 {{ $product->category?->name ?? 'Sin categoría' }}
-                                @if ($product->brand)
-                                    / {{ $product->brand }}
-                                @endif
                             </p>
 
                             <h1 class="text-3xl md:text-4xl font-serif font-bold text-gray-900 leading-tight">
@@ -129,49 +126,20 @@
                             </h1>
                         </div>
 
-                        <div class="mb-6">
+                        <div class="mb-8">
                             <p class="text-3xl font-bold text-black">
                                 {{ $product->price ? '$' . number_format($product->price, 2, ',', '.') : 'Consultar precio' }}
                             </p>
                         </div>
 
-                        <div class="grid sm:grid-cols-2 gap-4 mb-8">
-                            @if ($product->brand)
-                                <div class="bg-gray-50 border rounded-xl p-4">
-                                    <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">Marca</p>
-                                    <p class="text-sm font-semibold text-gray-900">{{ $product->brand }}</p>
-                                </div>
-                            @endif
-
-                            @if ($product->model)
-                                <div class="bg-gray-50 border rounded-xl p-4">
-                                    <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">Modelo</p>
-                                    <p class="text-sm font-semibold text-gray-900">{{ $product->model }}</p>
-                                </div>
-                            @endif
-
-                            @if ($product->sku)
-                                <div class="bg-gray-50 border rounded-xl p-4">
-                                    <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">SKU</p>
-                                    <p class="text-sm font-semibold text-gray-900">{{ $product->sku }}</p>
-                                </div>
-                            @endif
-
-                            <div class="bg-gray-50 border rounded-xl p-4">
-                                <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">Disponibilidad</p>
-                                <p class="text-sm font-semibold text-gray-900">
-                                    {{ $product->is_active ? 'Disponible' : 'No disponible' }}
-                                </p>
-                            </div>
-                        </div>
-
+                        {{-- Solo Descripción Visible --}}
                         @if ($product->description)
                             <div class="mb-8">
                                 <h2 class="text-sm font-bold uppercase tracking-widest text-gray-900 mb-3">
                                     Descripción
                                 </h2>
                                 <div class="bg-gray-50 border rounded-xl p-5">
-                                    <p class="text-gray-600 leading-relaxed">
+                                    <p class="text-gray-600 leading-relaxed text-sm md:text-base">
                                         {{ $product->description }}
                                     </p>
                                 </div>
@@ -180,14 +148,14 @@
 
                         <div class="mt-auto flex flex-wrap gap-3">
                             <a href="https://wa.me/{{ $phone }}?text={{ $message }}" target="_blank"
-                                class="bg-black text-white px-6 py-3 rounded-lg uppercase text-xs tracking-widest font-bold hover:bg-yellow-500 hover:text-black transition">
+                                class="w-full sm:w-auto text-center bg-black text-white px-6 py-3 rounded-lg uppercase text-xs tracking-widest font-bold hover:bg-yellow-500 hover:text-black transition">
                                 Consultar por WhatsApp
                             </a>
 
                             @auth
                                 @if (auth()->user()->is_admin)
                                     <a href="{{ route('admin.products.edit', $product) }}"
-                                        class="border border-black text-black px-6 py-3 rounded-lg uppercase text-xs tracking-widest font-bold hover:bg-black hover:text-white transition">
+                                        class="w-full sm:w-auto text-center border border-black text-black px-6 py-3 rounded-lg uppercase text-xs tracking-widest font-bold hover:bg-black hover:text-white transition">
                                         Editar producto
                                     </a>
                                 @endif
@@ -197,16 +165,18 @@
                 </div>
             </div>
 
+            {{-- Productos Relacionados --}}
             @if ($relatedProducts->count())
                 <div class="mt-16">
-                    <div class="flex items-center justify-between mb-8">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                         <h2 class="text-2xl font-serif font-bold text-gray-900">Productos relacionados</h2>
                         <a href="{{ route('shop') }}" class="text-sm text-gray-500 hover:text-black transition">
-                            Ver catálogo completo
+                            Ver catálogo completo →
                         </a>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {{-- Grid responsivo ajustado: 2 columnas en móvil, 4 en desktop --}}
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         @foreach ($relatedProducts as $related)
                             <div
                                 class="bg-white border rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group flex flex-col">
@@ -224,23 +194,25 @@
                                     @endif
                                 </div>
 
-                                <div class="p-5 flex-1 flex flex-col">
-                                    <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">
+                                {{-- Espaciado adaptativo p-3 a p-5 --}}
+                                <div class="p-3 sm:p-5 flex-1 flex flex-col">
+                                    <p
+                                        class="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest mb-1 truncate">
                                         {{ $related->category?->name ?? 'Sin categoría' }}
                                     </p>
 
-                                    <h3 class="text-lg font-serif font-bold text-gray-900 mb-2 line-clamp-2">
+                                    <h3 class="text-sm sm:text-lg font-serif font-bold text-gray-900 mb-2 line-clamp-2">
                                         {{ $related->name }}
                                     </h3>
 
                                     <div class="mt-auto">
-                                        <p class="text-xl text-black font-bold mb-4">
+                                        <p class="text-base sm:text-xl text-black font-bold mb-3 sm:mb-4">
                                             {{ $related->price ? '$' . number_format($related->price, 2, ',', '.') : 'Consultar' }}
                                         </p>
 
                                         <a href="{{ route('shop.show', $related) }}"
-                                            class="block w-full text-center border border-black text-black py-2 uppercase text-sm tracking-widest font-bold hover:bg-black hover:text-white transition duration-300">
-                                            Ver Detalles
+                                            class="block w-full text-center border border-black text-black py-1.5 sm:py-2 uppercase text-[10px] sm:text-sm tracking-widest font-bold hover:bg-black hover:text-white transition duration-300">
+                                            Detalles
                                         </a>
                                     </div>
                                 </div>
