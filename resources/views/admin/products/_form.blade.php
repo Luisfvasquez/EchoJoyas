@@ -329,6 +329,26 @@
                 if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
                 return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
             }
+            document.querySelectorAll('form[data-lock-submit="true"]').forEach(form => {
+                let submitted = false;
+
+                form.addEventListener('submit', function(event) {
+                    if (submitted) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    submitted = true;
+
+                    const submitButtons = form.querySelectorAll('[data-submit-button]');
+
+                    submitButtons.forEach(button => {
+                        button.disabled = true;
+                        button.dataset.originalHtml = button.innerHTML;
+                        button.innerHTML = button.dataset.loadingText || 'Guardando...';
+                    });
+                });
+            });
         });
     </script>
 @endonce

@@ -29,6 +29,8 @@ Route::middleware(['auth'])->get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
 })->name('dashboard');
 
+
+
 Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
@@ -39,8 +41,8 @@ Route::middleware(['auth', 'admin'])
         Route::resource('products', ProductController::class)->except('show');
         Route::resource('users', UserController::class)->except('show');
 
-        Route::delete('products/images/{image}', [ProductController::class, 'destroyImage'])
-            ->name('products.images.destroy');
+        Route::delete('/products/{product}/images', [ProductController::class, 'destroyMultipleImages'])
+            ->name('products.images.destroy-multiple');
     });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

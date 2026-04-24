@@ -189,7 +189,7 @@ class ProductController extends Controller
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'featured_image_id' => [
                 'nullable',
-                Rule::exists('product_images', 'id')->where(fn ($query) => $query->where('product_id', $product->id)),
+                Rule::exists('product_images', 'id')->where(fn($query) => $query->where('product_id', $product->id)),
             ],
         ], $messages);
 
@@ -274,27 +274,60 @@ class ProductController extends Controller
             ->with('success', 'Producto eliminado correctamente.');
     }
 
-    public function destroyImage(ProductImages $image)
+    public function destroyMultipleImages(Request $request, Product $product)
     {
-        $productId = $image->product_id;
-        $wasFeatured = $image->is_featured;
+        $validated = $request->validate([
+            'image_ids' => ['required', 'array', 'min:1'],
+            'image_ids.*' => [
+                'integer',
+                Rule::exists('product_images', 'id')->where(fn($query) => $query->where('product_id', $product->id)),
+            ],
+        ], [
+            'image_ids.required' => 'Debes seleccionar al menos una imagen.',
+            'image_ids.array' => 'El formato de imágenes seleccionadas no es válido.',
+            'image_ids.min' => 'Debes seleccionar al menos una imagen.',
+            'image_ids.*.exists' => 'Una o más imágenes seleccionadas no pertenecen a este producto.',
+        ]);
 
-        Storage::disk('public')->delete(array_filter([
-            $image->image_path,
-            $image->thumbnail_path,
-        ]));
+        DB::beginTransaction();
 
-        $image->delete();
+        try {
+            $images = ProductImages::where('product_id', $product->id)
+                ->whereIn('id', $validated['image_ids'])
+                ->get();
 
-        if ($wasFeatured) {
-            $nextImage = ProductImages::where('product_id', $productId)->first();
-
-            if ($nextImage) {
-                $nextImage->update(['is_featured' => true]);
+            if ($images->isEmpty()) {
+                return back()->with('error', 'No se encontraron imágenes válidas para eliminar.');
             }
-        }
 
-        return back()->with('success', 'Imagen eliminada correctamente.');
+            $wasFeaturedDeleted = $images->contains(fn($image) => (bool) $image->is_featured);
+
+            foreach ($images as $image) {
+                Storage::disk('public')->delete(array_filter([
+                    $image->image_path,
+                    $image->thumbnail_path,
+                ]));
+
+                $image->delete();
+            }
+
+            $remainingImages = ProductImages::where('product_id', $product->id)->get();
+
+            if ($remainingImages->isNotEmpty() && $wasFeaturedDeleted) {
+                ProductImages::where('product_id', $product->id)->update(['is_featured' => false]);
+
+                $remainingImages->first()->update(['is_featured' => true]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Imágenes eliminadas correctamente.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return back()->with('error', 'Ocurrió un error al eliminar las imágenes seleccionadas.');
+        }
     }
 
     private function generateUniqueSlug(string $name, ?int $ignoreId = null): string
@@ -304,9 +337,9 @@ class ProductController extends Controller
         $counter = 1;
 
         while (
-            Product::when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            Product::when($ignoreId, fn($query) => $query->where('id', '!=', $ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = $baseSlug . '-' . $counter;
             $counter++;
