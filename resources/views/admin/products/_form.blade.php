@@ -306,12 +306,22 @@
                                     return;
                                 }
 
-                                resolve(new File(
-                                    [blob],
-                                    `${originalName}.webp`, {
+                                // Safari Fallback: Si pedimos 'image/webp' pero el navegador nos devuelve 
+                                // 'image/png' (y el original no era PNG), significa que no soporta WebP.
+                                if (blob.type === 'image/png' && file.type !==
+                                    'image/png') {
+                                    // Reintentamos la compresión usando JPEG, que funciona en todos los iOS
+                                    canvas.toBlob(function(jpegBlob) {
+                                        resolve(new File([jpegBlob],
+                                            `${originalName}.jpg`, {
+                                                type: 'image/jpeg'
+                                            }));
+                                    }, 'image/jpeg', 0.82);
+                                } else {
+                                    resolve(new File([blob], `${originalName}.webp`, {
                                         type: 'image/webp'
-                                    }
-                                ));
+                                    }));
+                                }
                             }, 'image/webp', 0.82);
                         };
 

@@ -375,11 +375,7 @@ class ProductController extends Controller
             $height = imagesy($source);
         }
 
-        $extension = match ($type) {
-            IMAGETYPE_PNG  => 'png',
-            IMAGETYPE_WEBP => 'webp',
-            default        => 'jpg',
-        };
+        $extension = 'webp';
 
         $filename = (string) Str::uuid();
 
@@ -461,12 +457,11 @@ class ProductController extends Controller
             mkdir(dirname($targetPath), 0755, true);
         }
 
-        match ($type) {
-            IMAGETYPE_JPEG => imagejpeg($canvas, $targetPath, 82),
-            IMAGETYPE_PNG  => imagepng($canvas, $targetPath, 7),
-            IMAGETYPE_WEBP => imagewebp($canvas, $targetPath, 80),
-            default => throw new \RuntimeException('Formato de imagen no soportado.'),
-        };
+        if (! is_dir(dirname($targetPath))) {
+            mkdir(dirname($targetPath), 0755, true);
+        }
+
+        imagewebp($canvas, $targetPath, 80);
 
         imagedestroy($canvas);
     }
