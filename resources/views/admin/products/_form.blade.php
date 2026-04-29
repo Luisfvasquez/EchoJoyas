@@ -130,8 +130,8 @@
     </div>
 
     <div class="flex flex-wrap gap-3">
-        <button type="submit"
-            class="bg-black text-white px-6 py-3 rounded-lg uppercase text-xs tracking-widest hover:bg-gray-800 transition">
+        <button type="submit" data-submit-button data-loading-text="Guardando producto..."
+            class="inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-lg uppercase text-xs tracking-widest hover:bg-gray-800 transition disabled:opacity-70 disabled:cursor-not-allowed">
             Guardar producto
         </button>
 
@@ -344,8 +344,22 @@
 
                     submitButtons.forEach(button => {
                         button.disabled = true;
+                        button.setAttribute('aria-busy', 'true');
                         button.dataset.originalHtml = button.innerHTML;
-                        button.innerHTML = button.dataset.loadingText || 'Guardando...';
+
+                        const loadingText = button.dataset.loadingText || 'Guardando...';
+
+                        button.innerHTML = `
+        <span class="inline-flex items-center justify-center gap-2">
+            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
+                </path>
+            </svg>
+            <span>${loadingText}</span>
+        </span>
+    `;
                     });
                 });
             });

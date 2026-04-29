@@ -62,7 +62,7 @@
                                     <td class="px-6 py-4">
                                         @if($product->featured_image)
                                             <img
-                                                src="{{ asset('storage/' . $product->featured_image->image_path) }}"
+                                                src="{{ asset('storage/' . $product->featured_image->thumbnail_path ?: $product->featured_image->image_path) }}"
                                                 alt="{{ $product->name }}"
                                                 class="w-16 h-16 object-cover rounded-lg border"
                                             >
@@ -122,8 +122,10 @@
                     </table>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100">
-                    {{ $products->links() }}
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 sm:px-6">
+                    <div class="mt-2 text-sm text-blue-600">
+                        {{ $products->links() }}
+                    </div>
                 </div>
             </div>
         </div>

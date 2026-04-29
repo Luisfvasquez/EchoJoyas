@@ -115,7 +115,7 @@
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                         <div class="p-8">
-                            <p class="text-xs text-yellow-600 font-bold tracking-widest uppercase mb-2">Bvlgari</p>
+                            <p class="text-xs text-yellow-600 font-bold tracking-widest uppercase mb-2"></p>
                             <h4 class="text-2xl font-serif font-bold mb-2">Ulysse Nardin</h4>
                             <p class="text-gray-600 text-sm mb-6 line-clamp-3">
                                 Un cronógrafo deportivo con diseño audaz. La combinación perfecta entre la elegancia
@@ -136,7 +136,7 @@
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                         <div class="p-8">
-                            <p class="text-xs text-yellow-600 font-bold tracking-widest uppercase mb-2">Seiko</p>
+                            <p class="text-xs text-yellow-600 font-bold tracking-widest uppercase mb-2"></p>
                             <h4 class="text-2xl font-serif font-bold mb-2">Oyster Perpetual Candy Pink</h4>
                             <p class="text-gray-600 text-sm mb-6 line-clamp-3">
                                 Reconocido mundialmente por su resistencia extrema y su icónico dial naranja. Una
@@ -157,7 +157,7 @@
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                         <div class="p-8">
-                            <p class="text-xs text-yellow-600 font-bold tracking-widest uppercase mb-2">Tissot</p>
+                            <p class="text-xs text-yellow-600 font-bold tracking-widest uppercase mb-2"></p>
                             <h4 class="text-2xl font-serif font-bold mb-2">Cartier Santos</h4>
                             <p class="text-gray-600 text-sm mb-6 line-clamp-3">
                                 El pionero de la aviación y la elegancia moderna.
